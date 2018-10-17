@@ -24,7 +24,7 @@ class MockTransport(Transport):
 
 class MockTransportConnection(TransportConnection):
     @inlineCallbacks
-    def execute(self, log, command, timeout=0):
+    def execute(self, log, command):
         command, args = command[0], command[1:]
         result = {}
 

@@ -16,7 +16,7 @@ setup(
     version="1.0",
     packages=find_packages(exclude=["tests"]),
     install_requires=[
-        "Twisted>=13.1",
+        "Twisted>=18.7",
     ],
     extras_require={
         "autoscaler": [

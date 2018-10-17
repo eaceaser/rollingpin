@@ -9,10 +9,11 @@ from twisted.internet.defer import (
     DeferredSemaphore,
     inlineCallbacks,
     returnValue,
+    TimeoutError,
 )
 
 from .hostsources import Host
-from .transports import TransportError, ExecutionTimeout
+from .transports import TransportError
 from .utils import sleep
 
 
@@ -78,7 +79,23 @@ class Deployer(object):
         self.dangerously_fast = dangerously_fast
 
     @inlineCallbacks
-    def process_host(self, host, commands, timeout=0):
+    def _do_host_actions(self, log, host, commands):
+        log.info("connecting")
+        connection = yield self.transport.connect_to(host.address)
+
+        results = []
+        for command in commands:
+            log.info(" ".join(command))
+            yield self.event_bus.trigger(
+                "host.command", host=host, command=command)
+            result = yield connection.execute(log, command)
+            results.append(DeployResult(command, result))
+
+        yield connection.disconnect()
+        returnValue(results)
+
+    @inlineCallbacks
+    def process_host(self, host, commands):
         log = logging.LoggerAdapter(self.log, {"host": host.name})
 
         yield self.event_bus.trigger("host.begin", host=host)
@@ -86,15 +103,15 @@ class Deployer(object):
         results = []
 
         try:
-            log.info("connecting")
-            connection = yield self.transport.connect_to(host.address)
-            for command in commands:
-                log.info(" ".join(command))
-                yield self.event_bus.trigger(
-                    "host.command", host=host, command=command)
-                result = yield connection.execute(log, command, timeout)
-                results.append(DeployResult(command, result))
-            yield connection.disconnect()
+            host_deferred = self._do_host_actions(log, host, commands)
+            host_deferred.addTimeout(self.execution_timeout, reactor)
+
+            try:
+                command_results = yield host_deferred
+            except TimeoutError:
+                raise TransportError("timed out")
+
+            results.extend(command_results)
         except TransportError as e:
             should_be_alive = yield self.host_source.should_be_alive(host)
             if should_be_alive:
@@ -220,8 +237,7 @@ class Deployer(object):
                     first_host = False
 
                 deferred = parallelism_limiter.run(
-                    self.process_host, host, commands,
-                    timeout=self.execution_timeout)
+                    self.process_host, host, commands)
                 deferred.addErrback(self.on_host_error)
                 host_deploys.append(deferred)
 
