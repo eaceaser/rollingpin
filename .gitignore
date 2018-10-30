@@ -4,3 +4,4 @@
 .vagrant/
 .idea/
 build/
+.python-version

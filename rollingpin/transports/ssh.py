@@ -256,7 +256,7 @@ class SshTransportConnection(TransportConnection):
     def execute(self, log, command, timeout=0, env={}):
         args = " ".join(pipes.quote(part) for part in command)
         env_set = " ".join("%s=%s" % (k, pipes.quote(v)) for k, v in env.iteritems())
-        command = "%s sudo -E %s %s" % (env_set, self.command_binary, args)
+        command = "sudo -s %s %s %s" % (env_set, self.command_binary, args)
 
         channel = _CommandChannel(
             log, command, conn=self.connection, timeout=timeout)
