@@ -29,7 +29,7 @@ class CommandFailed(TransportError):
 
 
 class TransportConnection(object):
-    def execute(self, log, command):
+    def execute(self, log, command, timeout, env):
         raise NotImplementedError
 
     def disconnect(self):

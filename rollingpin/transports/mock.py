@@ -1,3 +1,4 @@
+import pipes
 import random
 
 from twisted.internet.defer import inlineCallbacks, returnValue, succeed
@@ -24,18 +25,20 @@ class MockTransport(Transport):
 
 class MockTransportConnection(TransportConnection):
     @inlineCallbacks
-    def execute(self, log, command, timeout=0):
+    def execute(self, log, command, timeout=0, env={}):
         command, args = command[0], command[1:]
         result = {}
 
+        env_set = " ".join("%s=%s" % (k, pipes.quote(v)) for k, v in env.iteritems())
+
         if command == "synchronize":
-            log.debug("MOCK: git fetch")
+            log.debug("MOCK: %s git fetch" % (env_set, ))
         elif command == "build":
             log.debug("MOCK: build stuff")
             for arg in args:
                 result[arg] = "build-token"
         elif command == "deploy":
-            log.debug("MOCK: git fetch origin")
+            log.debug("MOCK: %s git fetch origin" % (env_set, ))
             if random.random() < .2:
                 raise CommandFailed("remote command exited with status 127")
             log.debug("MOCK: git checkout origin/master")

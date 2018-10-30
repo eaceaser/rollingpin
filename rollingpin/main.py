@@ -220,6 +220,7 @@ def _main(reactor, *raw_args):
         deployer = Deployer(
             config,
             event_bus,
+            word,
             args.parallel,
             args.sleeptime,
             args.timeout,

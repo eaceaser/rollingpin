@@ -21,6 +21,8 @@ SIGNAL_MESSAGES = {
     signal.SIGHUP: "received SIGHUP. tsk tsk.",
 }
 
+DEPLOY_ID_ENV = "ROLLINGPIN_DEPLOY_ID"
+
 
 class AbortDeploy(Exception):
     pass
@@ -56,11 +58,12 @@ DeployResult = collections.namedtuple('DeployResult', ['command', 'result'])
 
 class Deployer(object):
 
-    def __init__(self, config, event_bus, parallel,
+    def __init__(self, config, event_bus, deploy_id, parallel,
                  sleeptime, timeout, dangerously_fast):
         """
         :param dict config:
         :param EventBus event_bus:
+        :param string deploy_id: a unique identifier for this deploy
         :param int parallel: number of hosts to process in parallel
         :param float sleeptime: sleep time between hosts
         :param int timeout: command execution timeout
@@ -74,12 +77,16 @@ class Deployer(object):
         self.parallel = parallel
         self.code_host = config["deploy"]["code-host"]
         self.execution_timeout = timeout
+        self.deploy_id = deploy_id
         self.sleeptime = sleeptime
         self.dangerously_fast = dangerously_fast
 
     @inlineCallbacks
     def process_host(self, host, commands, timeout=0):
         log = logging.LoggerAdapter(self.log, {"host": host.name})
+        command_env = {
+            DEPLOY_ID_ENV: self.deploy_id,
+        }
 
         yield self.event_bus.trigger("host.begin", host=host)
 
@@ -92,7 +99,7 @@ class Deployer(object):
                 log.info(" ".join(command))
                 yield self.event_bus.trigger(
                     "host.command", host=host, command=command)
-                result = yield connection.execute(log, command, timeout)
+                result = yield connection.execute(log, command, timeout, command_env)
                 results.append(DeployResult(command, result))
             yield connection.disconnect()
         except TransportError as e:
