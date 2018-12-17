@@ -1,9 +1,10 @@
 Vagrant.configure(2) do |config|
-  config.vm.box = "trusty-cloud-image"
-  config.vm.box_url = "https://cloud-images.ubuntu.com/vagrant/trusty/current/trusty-server-cloudimg-amd64-vagrant-disk1.box"
+  config.vm.box = "puppetlabs/ubuntu-16.04-64-puppet"
+  config.vm.box_version = "1.0.0"
   config.vm.network "private_network", type: "dhcp"
   config.vm.hostname = "rollingpin.local"
 
+  config.vm.provision :shell, inline: "apt-get update && apt-get install -y software-properties-common"
   config.vm.provision :puppet do |puppet|
     puppet.manifests_path = "./puppet"
     puppet.manifest_file = "init.pp"

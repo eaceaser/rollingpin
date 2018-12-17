@@ -8,15 +8,20 @@ class rollingpin {
   $dependencies = [
     'pep8',
     'python',
-    'python-coverage',
-    'python-mock',
-    'python-twisted',
-    'python-txzookeeper',
+    'python-pip',
+    'python-dev',
   ]
 
   package { $dependencies:
     ensure => installed,
-    before => Exec['build app'],
+    before => Exec['install requirements'],
+  }
+
+  exec { 'install requirements':
+    user    => $::user,
+    cwd     => $::project_path,
+    command => 'pip install -r requirements.txt',
+    before  => Exec['build app']
   }
 
   exec { 'build app':
