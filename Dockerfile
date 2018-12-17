@@ -6,8 +6,8 @@ ENV SRC_DIR /opt/rollingpin
 # Set up requirements
 RUN mkdir -p $SRC_DIR
 WORKDIR $SRC_DIR
-COPY *requirements.txt $SRC_DIR
-RUN pip install -r *requirements.txt
+COPY *requirements.txt $SRC_DIR/
+RUN for f in *requirements.txt; do pip install -r $f; done
 COPY setup.py $SRC_DIR
 RUN python setup.py install
 
