@@ -54,6 +54,11 @@ class rollingpin {
     target => "${::project_path}/example_profile.ini",
   }
 
+  file { '/etc/rollingpin.d/timeout.ini':
+    ensure => link,
+    target => "${::project_path}/example-timeout.ini",
+  }
+
   file { '/etc/profile.d/local-bin.sh':
     ensure  => file,
     content => 'export PATH=$PATH:~/.local/bin',
