@@ -207,11 +207,16 @@ class _CommandChannel(SSHChannel):
         if not self.finished.called:
             self.finished.errback(ExecutionTimeout(self.command))
 
+    def _command_error_handler(self, failure):
+        if not self.finished.called:
+            self.finished.errback(ChannelError(failure))
+
     def channelOpen(self, data):
         if self.timeout:
             reactor.callLater(self.timeout, self._execution_timeout)
         command = self.command.encode("utf-8")
-        self.conn.sendRequest(self, "exec", NS(command), wantReply=1)
+        commandReply = self.conn.sendRequest(self, "exec", NS(command), wantReply=1)
+        commandReply.addErrback(self._command_error_handler)
 
     def openFailed(self, reason):
         self.conn.errback(ChannelError(reason.desc))
