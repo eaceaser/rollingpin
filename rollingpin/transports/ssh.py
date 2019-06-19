@@ -69,6 +69,9 @@ class _ClientAuthService(SSHUserAuthClient):
 
 
 class _ClientTransport(SSHClientTransport):
+    def connectionMade(self):
+        self.factory.state = "INITIALIZED"
+
     def verifyHostKey(self, public_key, fingerprint):
         self.factory.state = "SECURING"
         return succeed(True)  # TODO
@@ -80,7 +83,11 @@ class _ClientTransport(SSHClientTransport):
         self.requestService(auth_service)
 
     def connectionLost(self, reason):
-        if self.factory.state == "SECURING":
+        if not hasattr(self.factory, "state"):
+            error = ConnectError("unable to connect, connection in unknown state")
+        elif self.factory.state == "INITIALIZED":
+            error = ConnectError("unable to begin SSH handshake")
+        elif self.factory.state == "SECURING":
             error = ConnectError("unable to make a secure connection")
         elif self.factory.state == "AUTHENTICATING":
             error = ConnectError("unable to authenticate")
